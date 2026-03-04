@@ -1,4 +1,4 @@
-# CYT180 — Lab 7: Data Preprocessing for Machine Learning 
+# CYT180 — Lab 8: Data Preprocessing for Machine Learning 
 **Weight:** 3% <br>
 **Work Type:** Individual <br>
 **Submission Format:** video
