@@ -143,8 +143,7 @@ plt.show()
 
 ### Reflection Questions
 - Why might boxplots reveal outliers more effectively than numerical summaries alone?
-- Should all outliers be removed automatically, or should the decision depend on domain context?
-- How might skewed distributions influence future preprocessing steps?
+- Explain each box separately for Q1, Q3 and outliers. 
 
 ----
 
@@ -412,6 +411,15 @@ Having clean and well‑prepared data will make the modeling process in Lab 8 fa
       
 ----
 
+## Submission Instructions
+- For each section, capture screenshots showing meaniingful output and the answers to review questions.
+- Include captions for each screenshot.
+- Capture the screenshot at proper resolution, too small resolution and capturing unnecessarily long output will lead to marks reduction of upto 50%.
+- Make sure your works looks professional!
+- Include the name and current date time in each screenshot.
+
+-----
+
 ## Video Requirements
 
 - Max length: 3 minutes (over 3 minutes = -20% deduction per minute)
@@ -419,4 +427,4 @@ Having clean and well‑prepared data will make the modeling process in Lab 8 fa
 - Voice narration required along with camera on
 - One continuous video capture (no editing)
 - Submit as: Unlisted YouTube link
-- Paste your video link: in the Blackboard Lab 7 submission
+- Paste your video link: in the Blackboard Lab 8 submission
