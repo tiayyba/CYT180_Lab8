@@ -397,21 +397,7 @@ Your dataset is now fully preprocessed and ready for next **Lab 8**, where you w
 
 Having clean and well‑prepared data will make the modeling process in Lab 8 far more effective and meaningful.
 
-## Submission Instructions
-- Record a 3-minutes video where you show your notebook and explain your preprocessing and EDA verbally.
-- The video must include these four checkpoints in order:
-- **Checkpoint A — Dataset Loading and Initial Inspection: Section 1 – Section 2 (≤ 30 seconds)**
-  - Show how you imported the required libraries, loaded the dataset, and used commands like `df.head()`, `df.info()`, and `df.isnull().sum()` to confirm the structure and identify any missing values.
-- **Checkpoint B — Descriptive Statistics and Outlier Visualization: Section 3 – Section 4  (≤ 60 seconds)**
-  - Explai summary statistics with `df.describe()`
-  - Explain boxplots. Briefly describe what patterns or anomalies you observed
-- **Checkpoint C — Correlation Analysis and Class Distribution: Section 5 – Section 6 (≤ 45 seconds)**
-  - Show your correlation heatmap and discuss 3-5 correlations.
-  -  Explain class distribution visualization and comment on the imbalance (approximately 65% vs 35%) and why balancing is not performed in this lab.
-- **Checkpoint D — Feature/Target Separation and Scaling: Section 7 – Section 8  (≤ 45 seconds)**
-  - Demonstrate how you separated the dataset into **X** (features) and **y** (target).
-  - Explain the scaling step (Min‑Max or Standardization) and briefly explain why scaling is important before model training.
-      
+     
 ----
 
 ## Submission Instructions
@@ -421,14 +407,3 @@ Having clean and well‑prepared data will make the modeling process in Lab 8 fa
 - Capture the screenshot at proper resolution, too small resolution and capturing unnecessarily long output will lead to marks reduction of upto 50%.
 - Make sure your works looks professional!
 - Include the name and current date time in each screenshot.
-
------
-
-## Video Requirements
-
-- Max length: 3 minutes (over 3 minutes = -20% deduction per minute)
-- Screen share showing your notebook
-- Voice narration required along with camera on
-- One continuous video capture (no editing)
-- Submit as: Unlisted YouTube link
-- Paste your video link: in the Blackboard Lab 8 submission
