@@ -291,7 +291,7 @@ plt.show()
   - Oversampling (e.g., SMOTE)
   - Undersampling
   - Class-weighted algorithms
-- **Identifying Evaluation Challenges:** With imbalance, metrics like precision, recall, F1-score, and ROC-AUC become more meaningful than accuracy.
+- **Identifying Evaluation Challenges:** With imbalance, metrics like precision, recall, F1-score, and ROC-AUC become more meaningful than accuracy. We will look at these in the next lab.
 - **Ensuring Fairness and Reliability:** In cybersecurity, minority classes often represent the most critical events (e.g., intrusion attempts). Even if rare, missing them would have serious consequences.
 
 A roughly even distribution suggests the dataset is balanced and simpler to model. A skewed distribution (e.g., 90/10 or 70/30) indicates the need for special handling. It is important to always check both percentages and absolute counts.
@@ -300,7 +300,6 @@ In this lab, we only visualize class imbalance. We do not apply balancing techni
 
 ### Reflection Questions
 - Based on the pie chart, what percentage of the samples belong to class 0 (No Diabetes) and class 1 (Diabetes)?  
-- Why is accuracy not a reliable metric when the dataset is moderately imbalanced?
 - Why are we only visualizing class imbalance in this lab and not applying balancing techniques yet?
 - In cybersecurity datasets, why are low-frequency (minority) events—such as intrusion attempts or failed login spikes—often the most important to detect?
 
