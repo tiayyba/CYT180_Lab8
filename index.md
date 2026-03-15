@@ -251,7 +251,9 @@ From this, we can reason:
 
 ### Reflection Questions
 
-- Why might two variables be strongly correlated even if one does not directly cause the other?
+- What is the actual correlation index of Glucose and Insulin?
+- What is the actual correlation index of BMI and SkinThickness?
+- What is the actual correlation index of Age and Pregnancies
 - What issues might arise if two features have a correlation greater than 0.9?
 - How can correlation analysis inform feature selection?
 
