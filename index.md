@@ -1,434 +1,512 @@
-# CYT180 — Lab 8: Machine‑Learning Model Training and Performance Evaluation
-**Weight:** 3% <br>
-**Work Type:** Individual <br>
-**Submission Format:** Report
+# CYT180 — Lab 8: Training and Evaluating Machine Learning Models
 
-----
+**Weight:** 3%
+**Work Type:** Individual
+**Submission Format:** Your Colab notebook printed to PDF (see Submission Guidelines)
+
+---
 
 ## Introduction
-In Lab 7, you completed all essential preprocessing tasks needed to prepare a structured dataset for supervised machine learning. You inspected the dataset, cleaned inconsistencies, analyzed distributions, removed outliers, evaluated correlations, examined class balance, separated features from the target variable, and applied feature scaling. These steps ensured that your dataset is clean, consistent, and mathematically ready for modeling.
-In this lab, you will move into the modeling and evaluation stage of the machine‑learning workflow. You will split your dataset into training and testing sets, build a baseline classification model, generate predictions, evaluate model performance using industry‑standard metrics, visualize diagnostic plots, and interpret the results in a cybersecurity context.
-This phase is critical: a model is only as useful as its ability to generalize to new, unseen data. The steps in Lab 9 are designed to help you understand not only how to build a model, but also how to evaluate it responsibly and translate metrics into practical insights for cybersecurity analytics.
 
-----
+In Lab 7, you prepared a network security dataset for machine learning. You checked its structure, removed duplicate records, filled missing values with the median, found outliers and decided to keep them (because many of them are the attacks), looked at correlations, saw that only about 10% of the connections are attacks, separated the features (X) from the target (y), and scaled the features.
+
+In this lab, you continue with the **same dataset and the same sample**. You will move to the next stage of the machine learning workflow: you will split the data into a training set and a test set, scale the features the correct way, train a **logistic regression** model, and evaluate it with the metrics from the Week 10 lecture: the confusion matrix, accuracy, precision, recall, F1-score, the ROC curve, and AUC.
+
+A model is only useful if it works on data it has never seen. So in this lab you will always train on one part of the data and test on another part. You will also see that one model can behave very differently depending on the **threshold** you use, and you will finish by choosing the setup that best fits the needs of a security team.
+
+You will mostly run provided code and observe the results, and you will complete one small task in most sections.
+
+**Every student works with their own sample of the data**, chosen by your student ID, exactly as in Lab 7. Your numbers will be different from your classmates' numbers. Submissions with another student's numbers will receive 0.
+
+---
 
 ## Learning Objectives
-By the end of this lab you will be able to:
-- Perform a train–test split using stratification
-- Train a baseline classification model (Logistic Regression)
-- Generate predictions and probability outputs
-- Compute essential evaluation metrics including accuracy, precision, recall, and F1‑score
-- Construct a confusion matrix and ROC curve and interpret AUC
-- Visualize key performance results
-- Interpret model behavior in a cybersecurity context
-- Produce a structured analytical report summarizing methodology, results, and insights
-  
-----
 
-## Section 1 — Data Setup (Load Raw Data and Apply Minimal Preprocessing)
+By the end of this lab, you will be able to:
 
-In Lab 8, you performed a full preprocessing workflow that included cleaning, outlier removal, correlation analysis, class balance inspection, and scaling the feature matrix. Lab 9 is the continuation of Lab 8. To make Lab 8 self‑contained and reproducible, we reload the raw dataset and repeat the minimum required preprocessing steps, so that the data is ready for modeling and the variables such as `clean_df`, `X`, and `X_normalized` exist for further processing.
+- Split a dataset into training and test sets with stratification
+- Scale features without leaking information from the test set
+- Train a logistic regression model and read its coefficients
+- Generate predicted labels and predicted probabilities
+- Build a confusion matrix and calculate accuracy, precision, recall, and F1-score
+- Plot an ROC curve and interpret the AUC
+- Explain how changing the threshold, or giving the attack class more weight, changes the results
+- Choose a model setup for a security team and justify it with your own numbers
 
-Section 1 re‑creates the essential outputs of Lab 8:
+---
 
-- Load the original CSV
-- Remove outliers using the same IQR technique
-- Re‑separate features (X) and target (y)
-- Perform train–test split
-- Scale/Normalize features properly for machine learning
-  
+## About the Data
+
+You use the same file as in Lab 7, `network_connections.csv`. Each row is **one network connection** to a company server. About 10% of the connections are **attacks**: port scans, brute-force logins, and data exfiltration.
+
+| Column | Meaning |
+|---|---|
+| `conn_id` | an ID number for the connection |
+| `duration_sec` | how long the connection lasted, in seconds |
+| `bytes_sent` | bytes sent from the inside host to the outside |
+| `bytes_received` | bytes received by the inside host |
+| `packets` | total packets in the connection |
+| `failed_logins` | failed login attempts during the connection |
+| `conn_per_min` | how many connections the same source made in that minute |
+| `unique_ports` | how many different ports the same source contacted in that minute |
+| `hour_of_day` | hour the connection started (0 to 23) |
+| `label` | the target: **0 = normal**, **1 = attack** |
+
+In this lab, **positive** means **attack** (label 1) and **negative** means **normal** (label 0).
+
+---
+
+## Prerequisites
+
+- You will work in **Google Colab**. Pandas, NumPy, scikit-learn, seaborn, and matplotlib are already installed there.
+- Download `network_connections.csv` from Blackboard (the same file as Lab 7).
+- In Colab, click the **folder icon** on the left, then the **upload** button, and choose the file. It will be saved as `/content/network_connections.csv`.
+- Start a **new notebook** for this lab. You do not need your Lab 7 notebook: Section 1 rebuilds your Lab 7 data for you.
+
+**Note:** files uploaded to Colab are deleted when the runtime restarts. If you get a "file not found" error, upload the file again.
+
+---
+
+## How the Tasks Work
+
+Each task cell ends with an **answer line** that starts with `print("Task N |", STUDENT_ID, "|", ...)`. The line is already written for you, and it prints the variables that your code must create. Your job is to write the code above it that calculates those variables.
+
+- **Do not change the answer line.** Your marks are read from it.
+- If the answer line gives an error such as `NameError: name 'n_train' is not defined`, it means you have not created that variable yet.
+- Round numbers exactly as the task says.
+
+---
+
+## Grading (10 marks)
+
+| Item | Marks |
+|---|---|
+| Task 1 – Check your split | 1 |
+| Task 2 – Check the scaling | 1 |
+| Task 3 – Read the model's coefficients | 1 |
+| Task 4 – Confusion matrix and metrics | 1 |
+| Task 5 – AUC and overlapping probabilities | 1 |
+| Task 6 – A lower threshold | 1 |
+| Reflection questions R1–R4 (1 mark each) | 4 |
+| **Total** | **10** |
+
+The provided code cells are not graded on their own, but your notebook must show that you ran them. A task whose answer line is missing receives 0. A submission without the Section 0 cell, or with numbers that do not match your student ID, receives 0.
+
+---
+
+## Section 0 — Your Name, Student ID, and Your Sample
+
+Run this cell **first**, at the top of your notebook. Type your own full name and student ID between the quotes before running it. Use the same student ID as in Lab 7.
+
 ```python
-# 1. Load raw dataset
+import datetime
 import pandas as pd
 import numpy as np
-df = pd.read_csv("diabetes.csv")
-
-# 2. Remove outliers from the Insulin column (same method from Lab 7)
-q1, q3 = np.percentile(df["Insulin"].dropna(), [25, 75])
-iqr = q3 - q1
-lower = q1 - 1.5 * iqr
-upper = q3 + 1.5 * iqr
-
-df = df[(df["Insulin"] >= lower) & (df["Insulin"] <= upper)]
-
-# 3. Separate features and target
-X = df.drop(columns=["Outcome"])
-y = df["Outcome"]
-
-# 4. Train–test split (stratified)
+import seaborn as sns
+import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (confusion_matrix, accuracy_score, precision_score,
+                             recall_score, f1_score, roc_curve, roc_auc_score)
 
+STUDENT_NAME = "Your Full Name"    # <-- type your full name
+STUDENT_ID   = "000000000"         # <-- type your 9-digit student ID
+
+if STUDENT_ID == "000000000" or STUDENT_NAME == "Your Full Name":
+    raise ValueError("Type your own name and student ID in this cell first.")
+
+# The last digit of your student ID picks your column, the same one as in Lab 7
+MY_COLUMNS = ["duration_sec", "bytes_sent", "bytes_received", "conn_per_min", "unique_ports"]
+MY_COLUMN = MY_COLUMNS[int(STUDENT_ID.strip()[-1]) % 5]
+
+print("Name:      ", STUDENT_NAME)
+print("Student ID:", STUDENT_ID)
+print("My column: ", MY_COLUMN)
+print("Timestamp: ", datetime.datetime.now().isoformat())
+```
+
+**Explanation**
+
+- The first lines import the libraries. The new ones come from **scikit-learn**: `train_test_split` splits the data, `StandardScaler` scales it, `LogisticRegression` is the model, and the functions in `sklearn.metrics` calculate the evaluation metrics.
+- `MY_COLUMN` is the same column you used for outliers in Lab 7. You will use it again in Task 2.
+
+Use the variables `STUDENT_ID` and `MY_COLUMN` in later cells exactly as shown. Do not change them.
+
+---
+
+## Section 1 — Rebuild Your Lab 7 Data
+
+This cell repeats the Lab 7 steps that changed the data, in one place. It takes your own 5,000-row sample, removes duplicate rows, fills the missing values in `duration_sec` and `bytes_received` with the median, and separates X and y. As we decided in Lab 7, we **keep** the outliers, because many of them are attacks.
+
+We do **not** repeat the Lab 7 scaling here. You will scale again in Section 3, the correct way for model training.
+
+```python
+df_all = pd.read_csv("/content/network_connections.csv")
+
+# Same sample as Lab 7: your student ID decides which rows you get
+df = df_all.sample(n=5000, random_state=int(STUDENT_ID)).reset_index(drop=True)
+
+# Lab 7, Section 3: remove duplicates and fill missing values with the median
+df_clean = df.drop_duplicates().reset_index(drop=True)
+for col in ["duration_sec", "bytes_received"]:
+    df_clean[col] = df_clean[col].fillna(df_clean[col].median())
+
+# Lab 7, Section 8: separate features (X) and target (y)
+X = df_clean.drop(columns=["conn_id", "label"])
+y = df_clean["label"]
+
+print("Rows in df_clean:     ", len(df_clean))
+print("Missing values left:  ", df_clean.isnull().sum().sum())
+print("Attacks (label = 1):  ", y.sum())
+print("Feature columns:      ", list(X.columns))
+```
+
+**Explanation**
+
+- The number of rows and attacks should be the same as in your Lab 7 notebook (Tasks 1, 3, and 5). If they are not, check that you typed the same student ID.
+- `y.sum()` counts the attacks, because `label` is 1 for an attack and 0 for a normal connection.
+
+---
+
+## Section 2 — Split the Data into Training and Test Sets
+
+A model must be tested on connections it has never seen, just like real traffic tomorrow. So we hold back part of the data as a **test set** and train only on the rest, the **training set**.
+
+```python
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, stratify=y, random_state=42
+    X, y,
+    test_size=0.25,     # 25% of the rows go to the test set
+    stratify=y,         # keep the same percentage of attacks in both sets
+    random_state=42     # the same split every time you run the cell
 )
 
-# 5. Fit MinMaxScaler on TRAIN ONLY (best practice)
-from sklearn.preprocessing import MinMaxScaler
-
-scaler = MinMaxScaler()
-X_train_scaled = scaler.fit_transform(X_train)  # fit on train
-X_test_scaled  = scaler.transform(X_test)       # transform test
+print("X_train:", X_train.shape, "  X_test:", X_test.shape)
 ```
 
-You may be thinking why we split first, then scale (even though in Lab 8 we scaled the date before spliting). In Lab 8, scaling was performed as part of exploratory data analysis, not model training. Its purpose was:
-- to compare feature ranges
-- to understand relationships
-- to visually inspect normalized distributions
-- to prepare for future modeling
-- to introduce students to scaling early
+**Explanation**
 
-However, the scaling done in Lab 8 is not appropriate for actual model training because scaling must always be fit on the training set only. If we scale **before** splitting, the following situations are possible:
-- the scaler “looks at” the entire dataset, including test data.
-- this gives the model information about the test set it shouldn’t have.
-- this is called **data leakage**, and it makes evaluation unreliable  
+- `train_test_split()` shuffles the rows and returns four parts: the features and labels of the training set (`X_train`, `y_train`) and of the test set (`X_test`, `y_test`).
+- `test_size=0.25` puts 25% of the rows in the test set and 75% in the training set.
+- `stratify=y` matters for imbalanced data. Without it, a random split could, by chance, put too few attacks in the test set, and the evaluation would not be reliable. With it, both sets keep the same percentage of attacks as the full data.
+- `random_state=42` makes the shuffle repeatable. Your rows are still different from your classmates' rows, because your sample in Section 1 is different.
 
-Therefore, Lab 9 uses the correct machine‑learning practice:
+### Task 1 — Check Your Split (1 mark)
+
+Create these four variables:
+
+1. `n_train`: the number of rows in `X_train`
+2. `n_test`: the number of rows in `X_test`
+3. `pct_train`: the percentage of attacks in `y_train`, rounded to 1 decimal
+4. `pct_test`: the percentage of attacks in `y_test`, rounded to 1 decimal
+
+Hint: `len(X_train)` gives the number of rows. Because `label` is 0 or 1, `y_train.mean()` is the fraction of attacks; multiply it by 100 to get a percentage.
+
+```python
+# TODO: Task 1 - create n_train, n_test, pct_train, pct_test
+# Your code here
+
+print("Task 1 |", STUDENT_ID, "|", n_train, n_test, pct_train, pct_test)
+```
+
+The two percentages should be almost the same. That is what `stratify=y` does.
+
+---
+
+## Section 3 — Scale the Features (Fit on the Training Set Only)
+
+In Lab 7, you fitted the scalers on all rows to see how scaling works. For a real model, that is a mistake: the scaler would learn the mean and standard deviation of the **test** rows too, so information from the test set would leak into training. This is called **data leakage**, and it makes the test results look better than they really are.
+
+The correct order is:
 
 ```text
-Split → Fit scaler on X_train → Transform X_train & X_test
+Split  →  fit the scaler on X_train  →  transform X_train and X_test with that same scaler
 ```
 
-This ensures that the model never sees test‑set information during training and that scaling parameters (min, max, mean, std) come only from the training data. This keeps evaluation metrics valid and trustworthy.
-This is critically important in cybersecurity, where even small leaks can result in models that appear extremely accurate but fail catastrophically on real‑world threat data.
-Now that the data is properly prepared, we can proceed to **Step 2: Train a Classification Model**.
-
-----
-## Section 2 — Train a Classification Model
-
-Now that the dataset has been properly prepared (loaded, cleaned, split into training/testing sets, and scaled), we can train our first supervised machine‑learning model. In this lab, we will use **Logistic Regression**, a widely used baseline classifier for binary classification tasks. It is simple, fast, easy to interpret, and performs well when features have been normalized — which we ensured in Section 1.
+We use **standardization** (`StandardScaler`) instead of Min-Max normalization. In Lab 7 (R4) you saw that Min-Max squeezes almost all values of a column close to 0 when the column has extreme values. Standardization is less affected by this.
 
 ```python
-from sklearn.linear_model import LogisticRegression
+scaler = StandardScaler()
 
-model = LogisticRegression()
+# fit on the training set only, then transform it
+X_train_scaled = pd.DataFrame(scaler.fit_transform(X_train), columns=X.columns)
+
+# transform the test set with the SAME scaler (no fitting)
+X_test_scaled = pd.DataFrame(scaler.transform(X_test), columns=X.columns)
+
+print(X_train_scaled.describe().round(3))
+```
+
+**Explanation**
+
+- `fit_transform(X_train)` learns the mean and standard deviation of each column **from the training rows only**, then scales them.
+- `transform(X_test)` uses those same training values to scale the test rows. It does not learn anything from the test set.
+- Look at the `mean` and `std` rows of the output: every training column now has mean 0 and standard deviation 1.
+
+### Task 2 — Check the Scaling (1 mark)
+
+For **your column** (`MY_COLUMN`), create:
+
+1. `train_mean`: the mean of `X_train_scaled[MY_COLUMN]`, rounded to 3 decimals
+2. `test_mean`: the mean of `X_test_scaled[MY_COLUMN]`, rounded to 3 decimals
+
+```python
+# TODO: Task 2 - create train_mean and test_mean
+# Your code here
+
+print("Task 2 |", STUDENT_ID, "|", MY_COLUMN, train_mean, test_mean)
+```
+
+**R1 (1 mark):** Your `train_mean` is 0 (it may print as 0.0 or -0.0), but your `test_mean` is not exactly 0. Using your own numbers, explain why the test mean is not 0, and why this is the correct result rather than a mistake. What would be wrong if we fitted the scaler on all rows before splitting? (2–3 sentences)
+
+---
+
+## Section 4 — Train a Logistic Regression Model
+
+Logistic regression is the classifier from the Week 9 lecture. It gives each feature a **weight** (also called a **coefficient**), adds up the weighted features into a score, and turns the score into a probability between 0 and 1 with the sigmoid function. It is a good **baseline** model: it is fast, it gives probabilities, and its weights are easy to read.
+
+```python
+model = LogisticRegression(max_iter=1000)
 model.fit(X_train_scaled, y_train)
+
+# One coefficient per feature, sorted from largest to smallest
+coefficients = pd.Series(model.coef_[0], index=X.columns).sort_values(ascending=False)
+print(coefficients.round(3))
 ```
 
-### Explanation
+**Explanation**
 
-- **Logistic Regression** learns a weight (coefficient) for each feature.
-- During training, it identifies patterns in `X_train_scaled` that help distinguish class **0 (No Diabetes)** from class **1 (Diabetes)**.
-- The model outputs a probability between 0 and 1 for each test sample, representing how likely the model believes the instance belongs to class 1.
-- This model is commonly used in cybersecurity for tasks such as:
-  - intrusion detection  
-  - malware classification  
-  - authentication anomaly detection  
-  - fraud detection  
+- `fit()` is the training step. The model looks at the training rows and their labels and finds the weights that separate attacks from normal connections best.
+- `max_iter=1000` gives the training algorithm enough steps to finish.
+- `model.coef_[0]` holds the learned weights, one per feature. We put them in a Pandas Series with the column names so they are easy to read.
+- Because all features were standardized, we can compare the weights. A **large positive** weight means a higher value of that feature pushes the prediction towards **attack**. A **negative** weight pushes it towards **normal**.
 
-Logistic Regression serves as an excellent **baseline model** because:
-- it is interpretable (weights show feature influence)
-- it trains quickly
-- it provides probability scores
-- it highlights whether preprocessing was done correctly
+### Task 3 — Read the Model's Coefficients (1 mark)
 
-You will later compare other models to this baseline in future labs.
+Using the `coefficients` Series, create:
 
-### Reflection Questions
+1. `top_feature`: the name of the feature with the **largest** coefficient
+2. `top_coef`: its coefficient, rounded to 3 decimals
+3. `low_feature`: the name of the feature with the **smallest** (most negative) coefficient
+4. `low_coef`: its coefficient, rounded to 3 decimals
 
-- Why is Logistic Regression considered a good baseline model for binary classification?
-- What might happen if the features were **not** scaled before training?
-- Why we apply `fit_transform()` on training data and `transform()` on test data?
-
-----
-
-## Section 3 — Generate Model Predictions
-
-Once the model has been trained using the training data, the next step is to use it to generate predictions on the **test set**. This allows us to measure how well the model generalizes to new, unseen data. We will produce two types of predictions:
-
-1. **Class labels** (0 or 1)  
-2. **Probability scores** (between 0 and 1)
-
-Probability predictions are especially important in cybersecurity settings where decisions often depend on risk thresholds rather than strict binary output.
+Hint: `coefficients.idxmax()` returns the name of the largest value, and `coefficients.max()` returns the value. `idxmin()` and `min()` work the same way.
 
 ```python
-# Generate class label predictions
+# TODO: Task 3 - create top_feature, top_coef, low_feature, low_coef
+# Your code here
+
+print("Task 3 |", STUDENT_ID, "|", top_feature, top_coef, low_feature, low_coef)
+```
+
+Think about whether your `top_feature` makes sense for the three kinds of attacks in this dataset.
+
+---
+
+## Section 5 — Make Predictions on the Test Set
+
+Now the model sees the test set for the first time. We ask it for two kinds of output:
+
+```python
+# Predicted labels: 0 (normal) or 1 (attack), using the default threshold of 0.5
 y_pred = model.predict(X_test_scaled)
 
-# Generate probability predictions for the positive class (class 1)
+# Predicted probability of attack (class 1) for each test connection
 y_prob = model.predict_proba(X_test_scaled)[:, 1]
+
+# Show the first 10 test connections
+preview = pd.DataFrame({
+    "actual": y_test.values[:10],
+    "prob_attack": y_prob[:10].round(3),
+    "predicted": y_pred[:10]
+})
+print(preview)
 ```
 
-### Explanation
+**Explanation**
 
-- `predict()`  
-  Returns **hard labels** (0 = No Diabetes, 1 = Diabetes).  
-  These are useful for confusion matrices and calculating metrics like accuracy.
+- `predict()` returns a label for each connection. A connection is labelled **attack** when its probability is 0.5 or more. This cut-off is the **threshold**.
+- `predict_proba()` returns two probabilities for each connection: the probability of class 0 and the probability of class 1. They add up to 1. `[:, 1]` keeps only the second one, the probability of **attack**.
+- In the preview, compare `actual` with `predicted`. Most rows should match. The probability column shows how sure the model is.
 
-- `predict_proba()`  
-  Returns **probabilities**, not just labels.  
-  The model outputs two probabilities per sample:
-  - probability of class 0  
-  - probability of class 1  
+---
 
-  By selecting `[:, 1]`, we extract the probability of belonging to class **1 (Diabetes)**.
+## Section 6 — Confusion Matrix and Evaluation Metrics
 
-Probability outputs are essential for:
-- ROC curve  
-- AUC calculation  
-- threshold tuning  
-- risk‑based decision making (very important in cybersecurity)
+Remember the four outcomes from the Week 10 lecture:
 
-----
+| | Predicted normal (0) | Predicted attack (1) |
+|---|---|---|
+| **Actually normal (0)** | True Negative (TN) | False Positive (FP): a false alarm |
+| **Actually attack (1)** | False Negative (FN): a missed attack | True Positive (TP) |
 
-## Section 4 — Evaluation Metrics
+And the four metrics:
 
-After generating predictions on the test set, the next step is to evaluate how well the model performed.  
-In cybersecurity, evaluation is especially important because different metrics reveal different types of model weaknesses — such as missed threats or excessive false alarms.
+- **Accuracy** = (TP + TN) / all rows: the fraction of all predictions that were correct
+- **Precision** = TP / (TP + FP): of the connections the model flagged as attacks, the fraction that really were attacks
+- **Recall** = TP / (TP + FN): of the real attacks, the fraction the model caught
+- **F1-score**: one number that combines precision and recall
 
-In this step, we compute five essential metrics:
+### Task 4 — Confusion Matrix and Metrics (1 mark)
 
-- **Accuracy**  
-- **Precision**  
-- **Recall**  
-- **F1‑score**  
-- **Confusion Matrix**  
-- **ROC Curve and AUC**
+Using `y_test` and `y_pred`, create:
 
-These metrics provide a complete picture of model performance and allow us to understand how well the model distinguishes between the two classes.
+1. `tn, fp, fn, tp`: the four counts of the confusion matrix
+2. `acc, prec, rec, f1`: accuracy, precision, recall, and F1-score, each rounded to 3 decimals
+
+Hint: `confusion_matrix(y_test, y_pred).ravel()` returns the four counts in the order TN, FP, FN, TP, so you can write `tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()`. For the metrics, use `accuracy_score`, `precision_score`, `recall_score`, and `f1_score`. Each one takes `(y_test, y_pred)`.
 
 ```python
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-from sklearn.metrics import confusion_matrix, roc_curve, auc
+# TODO: Task 4 - create tn, fp, fn, tp and acc, prec, rec, f1
+# Your code here
 
-# Classification metrics
-acc = accuracy_score(y_test, y_pred)
-prec = precision_score(y_test, y_pred)
-rec = recall_score(y_test, y_pred)
-f1 = f1_score(y_test, y_pred)
+print("Task 4 |", STUDENT_ID, "|", tn, fp, fn, tp, "|", acc, prec, rec, f1)
+```
 
-# Confusion matrix
+**R2 (1 mark):** In Lab 7 (R3), you saw that a model that predicts "normal" for every connection already gets a high accuracy. Using your Task 1 numbers, what accuracy would that model get on your test set? Compare it with your model's accuracy. Then, using your own FP and FN counts, explain what each one would mean for a security team (SOC) in real life. (3–4 sentences)
+
+---
+
+## Section 7 — Visualize the Results: Confusion Matrix and ROC Curve
+
+Numbers are easier to understand, and to explain to others, when you can see them. Run this cell to draw the confusion matrix as a heatmap and the ROC curve.
+
+```python
+fig, axs = plt.subplots(1, 2, figsize=(11, 4.5))
+
+# 1) Confusion matrix as a heatmap
 cm = confusion_matrix(y_test, y_pred)
+sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, ax=axs[0],
+            xticklabels=["Normal (0)", "Attack (1)"], yticklabels=["Normal (0)", "Attack (1)"])
+axs[0].set_xlabel("Predicted label")
+axs[0].set_ylabel("Actual label")
+axs[0].set_title("Confusion Matrix (threshold 0.5)")
 
-# ROC curve and AUC
+# 2) ROC curve
 fpr, tpr, thresholds = roc_curve(y_test, y_prob)
-roc_auc = auc(fpr, tpr)
+axs[1].plot(fpr, tpr, label="Logistic regression")
+axs[1].plot([0, 1], [0, 1], "k--", label="Random guessing")
+axs[1].set_xlabel("False Positive Rate")
+axs[1].set_ylabel("True Positive Rate (Recall)")
+axs[1].set_title("ROC Curve")
+axs[1].legend()
+
+plt.tight_layout()
+plt.show()
 ```
 
-### Explanation of Metrics
+**Explanation**
 
-**Accuracy**  
-- Percentage of correctly predicted instances.  
-- Can be misleading when classes are imbalanced.
+- The heatmap shows the same four counts as Task 4. The numbers on the diagonal (top left and bottom right) are the correct predictions.
+- `roc_curve()` tries every possible threshold. For each threshold, it calculates the **True Positive Rate** (recall) and the **False Positive Rate** (the fraction of normal connections that were flagged), and the plot connects these points.
+- The dashed line is a model that guesses at random. The closer the curve gets to the **top-left corner**, the better the model separates attacks from normal traffic.
+- The **AUC** (area under the ROC curve) sums the whole curve up in one number: 1.0 is perfect separation, and 0.5 is random guessing.
 
-**Precision**  
-- Of the samples predicted as positive (class 1), how many were actually positive?  
-- High precision = fewer false alarms.  
-- Crucial when false positives waste analyst time (e.g., in intrusion detection systems).
+### Task 5 — AUC and Overlapping Probabilities (1 mark)
 
-**Recall**  
-- Of all actual positives, how many did the model correctly detect?  
-- High recall = fewer missed threats.  
-- Extremely important in cybersecurity, where missing an attack can be costly.
+Create:
 
-**F1‑Score**  
-- Harmonic mean of precision and recall.  
-- Useful when both false positives and false negatives matter.
+1. `auc_value`: the AUC of the model, rounded to 3 decimals. Use `roc_auc_score(y_test, y_prob)`.
+2. `min_attack_prob`: the **lowest** attack probability that the model gave to a **real attack** in the test set, rounded to 3 decimals
+3. `max_normal_prob`: the **highest** attack probability that the model gave to a **real normal** connection in the test set, rounded to 3 decimals
 
-**Confusion Matrix**  
-Shows the counts of:
-- **True Positives (TP)**  
-- **True Negatives (TN)**  
-- **False Positives (FP)**  
-- **False Negatives (FN)**  
-
-A central tool for understanding model behavior.
-
-**ROC Curve & AUC**  
-- ROC shows the trade‑off between TPR (recall) and FPR at different thresholds.  
-- **AUC** summarizes the model’s ability to distinguish between classes.  
-  - **AUC ≈ 1.0** → Excellent separation  
-  - **AUC ≈ 0.5** → Random guessing  
-
-### Reflection Questions
-
-- Why can accuracy be misleading in cybersecurity datasets with class imbalance?  
-- For malware detection, which is more important — precision or recall — and why?  
-
-----
-
-## Section 5 — Visualizing Evaluation Metrics
-
-Numerical evaluation metrics (accuracy, precision, recall, F1, AUC) are extremely valuable, but visualizations help us understand *how* the model behaves across different thresholds and where its mistakes occur. Visual tools make it easier to communicate model performance to both technical and non‑technical audiences — especially important in cybersecurity operations.
-
-In this step, we visualize:
-
-- **ROC Curve** (model performance across all thresholds)
-- **Confusion Matrix** (counts of TP, TN, FP, FN)
+Hint: `y_prob[y_test.values == 1]` keeps only the probabilities of the real attacks. Then use `.min()`. Do the same with `== 0` and `.max()` for the normal connections.
 
 ```python
-import matplotlib.pyplot as plt
-import seaborn as sns
+# TODO: Task 5 - create auc_value, min_attack_prob, max_normal_prob
+# Your code here
 
-# ROC curve plot
-plt.figure(figsize=(6, 5))
-plt.plot(fpr, tpr, label=f'AUC = {roc_auc:.2f}')
-plt.plot([0, 1], [0, 1], 'k--')  # random baseline
-plt.xlabel('False Positive Rate')
-plt.ylabel('True Positive Rate')
-plt.title('ROC Curve')
-plt.legend()
-plt.show()
-
-# Confusion matrix heatmap
-plt.figure(figsize=(5, 4))
-sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
-plt.title('Confusion Matrix')
-plt.xlabel('Predicted Label')
-plt.ylabel('True Label')
-plt.show()
+print("Task 5 |", STUDENT_ID, "|", auc_value, min_attack_prob, max_normal_prob)
 ```
 
-### Explanation
+If `min_attack_prob` is lower than `max_normal_prob`, the probabilities of the two classes **overlap**: some attacks look "more normal" than some normal connections. No threshold can then be perfect, and choosing a threshold becomes a trade-off between missed attacks and false alarms.
 
-**ROC Curve**
-- Shows how the model performs at **every possible classification threshold**.
-- Each point represents a (False Positive Rate, True Positive Rate) pair.
-- The diagonal line is random guessing.
-- The farther the ROC curve is above that line, the better the model.
-- The **AUC** (Area Under the Curve) summarizes overall performance.
+---
 
-**Confusion Matrix**
-- Visualizes how many samples were correctly and incorrectly classified.
-- Helps identify whether the model struggles more with:
-  - **False Positives** (false alarms)
-  - **False Negatives** (missed threats)
-- In cybersecurity, this distinction is critical:
-  - Too many FP → alert fatigue  
-  - Too many FN → undetected attacks  
+## Section 8 — What Happens with a Lower Threshold?
 
-Combined, these visualizations give a deeper understanding of the model’s strengths and weaknesses beyond numerical metrics alone.
+By default, a connection is flagged as an attack when its probability is **0.5** or more. A security team can choose a different threshold. A **lower** threshold flags more connections, so it should catch more attacks, but it may also raise more false alarms.
 
-### Reflection Questions
+You already have the probabilities in `y_prob`, so you do not need to train the model again. You only need to compare them with a new threshold:
 
-- What does each point on the ROC curve represent in terms of model behavior?
-- Why is the confusion matrix important even when accuracy, precision, and recall are already known?
-- In cybersecurity, what real‑world situation corresponds to a **false positive**, and why can too many of them be problematic?
+```python
+y_pred_03 = (y_prob >= 0.3).astype(int)
+```
 
----- 
+This line gives 1 (attack) to every connection with a probability of 0.3 or more, and 0 (normal) to the rest.
 
-## Section 6 — Cybersecurity‑Focused Interpretation
+### Task 6 — A Lower Threshold (1 mark)
 
-Building a machine‑learning model is only the beginning.  
-The most important step is **interpreting what the results mean**, especially in real‑world cybersecurity environments where decisions can affect detection accuracy, analyst workload, and risk levels.
+Using `y_test` and `y_pred_03`, create:
 
-In this step, you connect your evaluation metrics to operational meaning.  
-Your goal is to understand **how the model behaves**, **what its strengths and weaknesses are**, and **how a SOC analyst would experience these outcomes**.
+1. `tn3, fp3, fn3, tp3`: the four counts of the confusion matrix at threshold 0.3
+2. `prec3, rec3`: precision and recall at threshold 0.3, each rounded to 3 decimals
 
-### Key Interpretation Areas
+```python
+y_pred_03 = (y_prob >= 0.3).astype(int)
 
-**1. Precision and False Alarms (False Positives)**  
-Low precision means many benign events are flagged as malicious.  
-In a SOC environment, this leads to:
-- alert fatigue  
-- wasted analyst time  
-- delayed response to real incidents  
+# TODO: Task 6 - create tn3, fp3, fn3, tp3 and prec3, rec3
+# Your code here
 
-Too many false positives can make a detection model unusable.
+print("Task 6 |", STUDENT_ID, "|", tn3, fp3, fn3, tp3, "|", prec3, rec3)
+```
 
-**2. Recall and Missed Attacks (False Negatives)**  
-Low recall means the model is missing actual threats.  
-In cybersecurity, false negatives are often more dangerous than false positives because:
-- intrusions go undetected  
-- attackers dwell longer  
-- incidents escalate before being caught  
+**R3 (1 mark):** Compare your results at threshold 0.5 (Task 4) and 0.3 (Task 6). How many more attacks did the lower threshold catch, and how many more false alarms did it raise? Explain why lowering the threshold moves recall and precision in these directions. (2–3 sentences, using your own numbers)
 
-A high-recall model is critical when the cost of missing an attack is severe.
+---
 
-**3. Confusion Matrix Insights**  
-The confusion matrix reveals where the model struggles:
-- High FN? → Model is too conservative, missing threats  
-- High FP? → Model is too sensitive, generating noise  
-- Balanced errors? → Threshold tuning may improve performance  
+## Section 9 — Giving the Attack Class More Weight
 
-This matrix provides insight that accuracy alone cannot.
+At the end of Lab 7, we said that we would deal with the class imbalance in Lab 8. Only about 10% of the training rows are attacks, so during training the model "sees" far more normal connections and pays more attention to getting them right.
 
-**4. AUC and Overall Separability**  
-A high AUC value indicates the model can distinguish malicious vs. benign behavior across many thresholds — important in cybersecurity where thresholds are often adjusted dynamically.
+One simple fix is to give each **attack** row more weight during training. With `class_weight="balanced"`, scikit-learn makes the weights inversely proportional to the class sizes: a mistake on a rare attack row costs about 9 times more than a mistake on a normal row. Unlike copying attack rows (oversampling), this does not add any rows, so it cannot cause data leakage.
 
-AUC expresses overall model quality independent of a fixed cutoff.
+```python
+model_bal = LogisticRegression(max_iter=1000, class_weight="balanced")
+model_bal.fit(X_train_scaled, y_train)
 
-**5. Feature Quality (Link to Lab 7)**  
-The model’s performance reflects the quality of preprocessing done earlier:
-- Were outliers handled correctly?  
-- Did normalization improve consistency?  
-- Did relevant features contribute strongly?  
-- Did correlation analysis help avoid redundancy?  
+y_pred_bal = model_bal.predict(X_test_scaled)
+tn_b, fp_b, fn_b, tp_b = confusion_matrix(y_test, y_pred_bal).ravel()
 
-Good preprocessing → more stable model.
+print("Balanced model (threshold 0.5)")
+print("TN, FP, FN, TP:", tn_b, fp_b, fn_b, tp_b)
+print("Precision:", round(precision_score(y_test, y_pred_bal), 3))
+print("Recall:   ", round(recall_score(y_test, y_pred_bal), 3))
+```
 
+**Explanation**
 
-### Reflection Questions
+- The only change from Section 4 is `class_weight="balanced"`. The data, the split, and the scaling are the same, so the comparison is fair.
+- Compare the four counts with your results from Task 4. Giving attacks more weight usually raises recall (fewer missed attacks) and lowers precision (more false alarms), just like a lower threshold does.
 
-- In a SOC environment, would you prioritize precision or recall? Why?
-- If the model has many false positives, how would this impact analyst workload?
-- How might an attacker benefit from being misclassified due to low recall?
-- How could scaling errors or poor preprocessing from Lab 7 distort interpretation in Lab 8?
-- What additional cybersecurity features (e.g., login time, device ID, IP reputation) could improve the model’s performance?
+Now you have three setups to compare:
 
-----
+| Setup | Results from |
+|---|---|
+| A: Standard model, threshold 0.5 | Task 4 |
+| B: Standard model, threshold 0.3 | Task 6 |
+| C: Balanced model, threshold 0.5 | Section 9 |
+
+**R4 (1 mark):** A company's SOC has two analysts. They can investigate every alert the model raises, but they cannot investigate thousands of connections by hand. Missing a data exfiltration would be very costly for the company. Which setup (A, B, or C) would you recommend for this SOC? Justify your choice with your own FP and FN numbers from the three setups, and explain the trade-off you are accepting. (3–4 sentences)
+
+---
+
+## Conclusion
+
+In this lab, you continued from your Lab 7 data and completed the modelling and evaluation stage of the machine learning workflow. You split the data with stratification, scaled the features without leaking information from the test set, trained a logistic regression model, and read its coefficients. You then evaluated the model with a confusion matrix, accuracy, precision, recall, F1-score, the ROC curve, and AUC, and you saw that the threshold and the class weights change the balance between missed attacks and false alarms.
+
+The most important lesson is that there is no single "best" result. The right setup depends on what the security team needs: how costly a missed attack is, and how many false alarms the analysts can handle.
+
+---
 
 ## Submission Guidelines
 
-The final step of this lab is to create a short, structured report that summarizes everything you completed in this lab.  
-This report should be **3-4 pages** and written in clear, professional language.  
-Use the template below as your guide.  
-You may include screenshots from your notebook where appropriate.
+1. **Run the whole notebook from top to bottom** (Runtime → Run all) so every output is visible. The Section 0 cell must be the first cell.
+2. **Write the reflection answers (R1–R4) in a text cell** directly under the task they belong to. Start each answer with its label (for example, **R1:**). Answer in your own words and refer to **your own numbers**. Delete any template or AI-generated text.
+3. **Print the notebook to PDF:** File → Print → Save as PDF. Check that the outputs and charts are readable and not cut off.
+4. **Submit the PDF** on Blackboard, named `Lab8_FirstName_LastName.pdf`.
 
-### **1. Introduction**
-Briefly summarize:
-- The purpose of Lab 9  
-- What dataset was used  
-- What problem the model is trying to solve  
-- How this lab connects to the preprocessing work completed in Lab 8 
+Deductions:
 
-A good introduction answers:  
-“What is this experiment about, and why does it matter?”
-
-### **2. Methods**
-Describe the steps you performed:
-- How you reloaded and minimally preprocessed the dataset  
-- How the data was split into training and testing sets  
-- Why scaling was applied *after* splitting  
-- What model you chose (Logistic Regression) and why it is an appropriate baseline  
-
-This section explains *how* you conducted the experiment.
-
-### **3. Results**
-Include the key outputs from your evaluation:
-- Accuracy  
-- Precision  
-- Recall  
-- F1‑score  
-- Confusion matrix  
-- ROC curve with AUC value  
-
-Use the ROC and AUC plot to explain the model’s behavior.
-
-### **4. Interpretation**
-Discuss the meaning of your results:
-- What the confusion matrix tells you about false positives and false negatives  
-- Whether precision or recall mattered more in this experiment  
-- How well the ROC curve indicates class separability  
-- How preprocessing affected model performance  
-- How these results relate to cybersecurity use‑cases  
-
-This is the most important part — explain what the results *mean*, not just what they *are*.
-
-### **5. Conclusion**
-Summarize your insights:
-- Overall performance of the model  
-- Strengths and weaknesses  
-- Any limitations caused by the dataset  
-- Recommendations for improving detection performance  
-  (e.g., additional features, different models, threshold adjustments)
-
-Keep this section concise and focused on big‑picture takeaways.
-
-### **Report Submission Notes**
-Your report should be:
-- 3-4 pages  
-- Professional and clearly organized in sections in the correct order. 
-- Written in complete sentences  
-- Supported with screenshots or tables where helpful  
-
-Make sure your writing focuses on both **technical correctness** *and* **cybersecurity relevance**.
+- A missing or changed answer line, or a missing reflection answer, receives 0 for that item.
+- Missing Section 0 cell, or numbers that do not match your student ID: 0 for the lab.
