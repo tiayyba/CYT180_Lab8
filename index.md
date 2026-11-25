@@ -63,8 +63,6 @@ In this lab, **positive** means **attack** (label 1) and **negative** means **no
 - In Colab, click the **folder icon** on the left, then the **upload** button, and choose the file. It will be saved as `/content/network_connections.csv`.
 - Start a **new notebook** for this lab. You do not need your Lab 7 notebook: Section 1 rebuilds your Lab 7 data for you.
 
-**Note:** files uploaded to Colab are deleted when the runtime restarts. If you get a "file not found" error, upload the file again.
-
 ---
 
 ## How the Tasks Work
