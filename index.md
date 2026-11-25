@@ -395,7 +395,7 @@ plt.show()
 
 **Explanation**
 
-- The heatmap shows the same four counts as Task 4. The numbers on the diagonal (top left and bottom right) are the correct predictions.
+- The confusion matrix shows the same four counts as Task 4. The numbers on the diagonal (top left and bottom right) are the correct predictions.
 - `roc_curve()` tries every possible threshold. For each threshold, it calculates the **True Positive Rate** (recall) and the **False Positive Rate** (the fraction of normal connections that were flagged), and the plot connects these points.
 - The dashed line is a model that guesses at random. The closer the curve gets to the **top-left corner**, the better the model separates attacks from normal traffic.
 - The **AUC** (area under the ROC curve) sums the whole curve up in one number: 1.0 is perfect separation, and 0.5 is random guessing.
